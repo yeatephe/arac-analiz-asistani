@@ -148,24 +148,36 @@ seri = st.selectbox("Seri", seri_opt, index=esle(seri_opt, a.get("seri") or a.ge
 model_opt = sirala(df[(df["marka"] == marka) & (df["seri"] == seri)]["model"])
 secili_model = st.selectbox("Model", model_opt, index=esle(model_opt, a.get("model")))
 
-st.markdown("**Senin gireceklerin** (yıl, kilometre, vites):")
-col1, col2, col3 = st.columns(3)
+# Secilen araca ait alt kume: menuleri buna gore filtreleyecegiz
+alt_kume = df[(df["marka"] == marka) & (df["seri"] == seri)]
+if len(alt_kume) == 0:
+    alt_kume = df[df["marka"] == marka]
+
+def akilli_alan(kap, etiket, sutun, ai_deger):
+    """Araçta tek seçenek varsa otomatik kullan+göster; çoksa menü çıkar."""
+    secenekler = sirala(alt_kume[sutun])
+    if not secenekler:
+        secenekler = sirala(df[sutun])  # bos kalirsa tum secenekler
+    if len(secenekler) == 1:
+        kap.markdown(f"**{etiket}:** {secenekler[0]}  \n<span style='color:gray;font-size:0.8em'>(bu araçta tek seçenek)</span>", unsafe_allow_html=True)
+        return secenekler[0]
+    return kap.selectbox(etiket, secenekler, index=esle(secenekler, ai_deger))
+
+st.markdown("**Senin gireceklerin** (yıl, kilometre, vites, şehir):")
+col1, col2 = st.columns(2)
 yil = col1.number_input("Model yılı", min_value=1990, max_value=2026, value=int(on_yil))
 kilometre = col2.number_input("Kilometre", min_value=0, max_value=1000000, value=100000, step=5000)
-vites_opt = sirala(df["vites_tipi"])
-vites_tipi = col3.selectbox("Vites tipi", vites_opt, index=esle(vites_opt, a.get("vites_tipi")))
+col1b, col2b = st.columns(2)
+# Vites: tek seçenekse otomatik, çoksa menü
+vites_tipi = akilli_alan(col1b, "Vites tipi", "vites_tipi", a.get("vites_tipi"))
+konum = col2b.selectbox("Şehir", sirala(df["konum"]))
 
 with st.expander("AI'ın doldurduğu diğer bilgiler (gerekirse düzelt)"):
-    col4, col5 = st.columns(2)
-    konum = col4.selectbox("Şehir", sirala(df["konum"]))
-    yakit_opt = sirala(df["yakit_tipi"])
-    yakit_tipi = col5.selectbox("Yakıt tipi", yakit_opt)
-    col6, col7 = st.columns(2)
-    kasa_opt = sirala(df["kasa_tipi"])
-    kasa_tipi = col6.selectbox("Kasa tipi", kasa_opt, index=esle(kasa_opt, a.get("kasa_tipi")))
-    cekis_opt = sirala(df["cekis"])
-    cekis = col7.selectbox("Çekiş", cekis_opt, index=esle(cekis_opt, a.get("cekis")))
-    col8, col9 = st.columns(2)
+    col5, col6 = st.columns(2)
+    yakit_tipi = akilli_alan(col5, "Yakıt tipi", "yakit_tipi", a.get("yakit_tipi"))
+    kasa_tipi  = akilli_alan(col6, "Kasa tipi", "kasa_tipi", a.get("kasa_tipi"))
+    col7, col8, col9 = st.columns(3)
+    cekis = akilli_alan(col7, "Çekiş", "cekis", a.get("cekis"))
     motor_hacmi = col8.number_input("Motor hacmi (cc)", min_value=600, max_value=8000,
                                     value=sayi(a.get("motor_hacmi_cc"), 1600), step=100)
     motor_gucu = col9.number_input("Motor gücü (bg)", min_value=30, max_value=1000,
