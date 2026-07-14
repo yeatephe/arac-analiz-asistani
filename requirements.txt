@@ -2,4 +2,5 @@ streamlit
 google-genai
 pillow
 pandas
-scikit-learn
+numpy
+catboost
