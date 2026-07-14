@@ -6,7 +6,58 @@ import numpy as np
 import json, time, re
 from catboost import CatBoostRegressor
 
-st.set_page_config(page_title="AI Araç Değerleme", page_icon="🚗")
+st.set_page_config(page_title="AI Araç Değerleme", page_icon="🚗", layout="centered")
+
+# ---- Özel görünüm (koyu + mavi, modern) ----
+st.markdown("""
+<style>
+/* Ana başlık: mavi gradient */
+h1 {
+    background: linear-gradient(90deg, #3B82F6, #60A5FA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800 !important;
+}
+/* Bölüm başlıkları için sol mavi çizgi */
+h2 {
+    border-left: 4px solid #3B82F6;
+    padding-left: 12px;
+    margin-top: 1.5rem !important;
+}
+/* Butonlar: yuvarlak, gradient, hover efektli */
+.stButton > button {
+    background: linear-gradient(90deg, #2563EB, #3B82F6);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.55rem 1.4rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+}
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(59,130,246,0.5);
+}
+/* Giriş kutuları ve menüler: yuvarlak köşe, ince mavi çerçeve */
+.stSelectbox div[data-baseweb="select"] > div,
+.stNumberInput div[data-baseweb="input"] {
+    border-radius: 8px;
+    border-color: #2A3B52 !important;
+}
+/* Başarı/uyarı kutuları: daha yumuşak köşe */
+.stAlert { border-radius: 10px; }
+/* Dosya yükleme alanı */
+.stFileUploader { border-radius: 10px; }
+/* Metrikleri kart gibi göster */
+div[data-testid="stMetric"] {
+    background: #1A2332;
+    border: 1px solid #2A3B52;
+    border-radius: 12px;
+    padding: 12px 16px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 KATEGORIK = ["konum", "marka", "seri", "model", "vites_tipi", "yakit_tipi", "kasa_tipi", "cekis"]
 SAYISAL   = ["yil", "kilometre", "motor_hacmi", "motor_gucu", "tramer", "degisen", "boyali"]
