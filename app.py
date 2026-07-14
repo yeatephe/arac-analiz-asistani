@@ -2,6 +2,7 @@ import streamlit as st
 from google import genai
 from PIL import Image
 import pandas as pd
+import numpy as np
 import json, time, re
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.compose import ColumnTransformer
@@ -11,7 +12,6 @@ from sklearn.pipeline import Pipeline
 st.set_page_config(page_title="AI Araç Değerleme", page_icon="🚗")
 
 KATEGORIK = ["konum", "marka", "seri", "model", "vites_tipi", "yakit_tipi", "kasa_tipi", "cekis"]
-# Hasar bilgileri de artik ozellik: tramer, degisen, boyali
 SAYISAL   = ["yil", "kilometre", "motor_hacmi", "motor_gucu", "tramer", "degisen", "boyali"]
 
 @st.cache_resource
@@ -24,7 +24,7 @@ def veri_ve_model():
         [("kat", OneHotEncoder(handle_unknown="ignore", min_frequency=10), KATEGORIK)],
         remainder="passthrough")
     pipe = Pipeline([("onisleme", onisleme),
-        ("model", RandomForestRegressor(n_estimators=40, max_depth=18, random_state=42, n_jobs=-1))])
+        ("model", RandomForestRegressor(n_estimators=100, max_depth=18, random_state=42, n_jobs=-1))])
     pipe.fit(X, y)
     return df, pipe
 
@@ -36,7 +36,7 @@ except Exception:
     st.error("API anahtarı bulunamadı. Streamlit 'Secrets' bölümüne GEMINI_API_KEY eklemelisin.")
     st.stop()
 
-MODELLER = ["gemini-3-flash", "gemini-2.5-flash", "gemini-flash-latest"]
+MODELLER = ["gemini-flash-latest", "gemini-3-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-lite-latest"]
 
 def analiz_et(komut, resim):
     son_hata = None
@@ -62,6 +62,13 @@ def idx(secenekler, deger):
             if str(o).lower() == str(deger).lower(): return i
     return 0
 
+def aralik_tahmin(arac_df):
+    """Her agacin ayri tahmininden ortalama + %10-%90 araligi cikarir."""
+    rf = pipe.named_steps["model"]
+    X_donus = pipe.named_steps["onisleme"].transform(arac_df)
+    agac_tah = np.array([t.predict(X_donus)[0] for t in rf.estimators_])
+    return agac_tah.mean(), np.percentile(agac_tah, 10), np.percentile(agac_tah, 90)
+
 st.title("🚗 AI Araç Değerleme Asistanı")
 st.write("Bir araç fotoğrafı yükle; yapay zeka aracı ve durumunu tanısın, sonra tahmini fiyatını hesaplayalım.")
 
@@ -79,7 +86,7 @@ if yuklenen is not None:
                 '{"marka":"","model":"","renk":"","kasa_tipi":"","gorunur_durum":"",'
                 '"hasar_var_mi":"","tahmini_yil_araligi":"","notlar":""}\n'
                 "ÖNEMLİ: Sadece fotoğrafta GÖRÜNEN şeyleri söyle. gorunur_durum = gözle görülebilen dış durum. "
-                "hasar_var_mi = sadece 'evet' veya 'hayir' yaz (gözle görülür hasar var mı). "
+                "hasar_var_mi = sadece 'evet' veya 'hayir' yaz. "
                 "Değişen/boyalı parça gibi kesin ekspertiz yorumu YAPMA. "
                 "Emin değilsen 'belirsiz' yaz, asla uydurma. Türkçe cevap ver."
             )
@@ -102,8 +109,7 @@ if analiz:
     if analiz.get("notlar"):
         st.info("📝 " + analiz["notlar"])
     if str(analiz.get("hasar_var_mi", "")).lower() == "evet":
-        st.warning("⚠️ Fotoğrafta görünür hasar tespit edildi. Aşağıdaki hasar bilgilerini "
-                   "(ekspertiz raporundan) girersen fiyat tahmini daha doğru olur.")
+        st.warning("⚠️ Fotoğrafta görünür hasar tespit edildi. Aşağıdaki hasar bilgilerini girersen tahmin daha doğru olur.")
     st.caption("⚠️ Bu bir ön izlenimdir, sadece fotoğrafa dayanır ve gerçek ekspertiz yerine geçmez.")
 
 # ============ BÖLÜM 2: FİYAT TAHMİNİ ============
@@ -136,19 +142,16 @@ col3, col4 = st.columns(2)
 motor_hacmi = col3.number_input("Motor hacmi (cc)", 800, value=1600, step=100)
 motor_gucu  = col4.number_input("Motor gücü (bg)", 40, value=120, step=10)
 
-# AI fotoğrafta hasar gördüyse kutu otomatik işaretli gelir
 ai_hasar = bool(analiz and str(analiz.get("hasar_var_mi", "")).lower() == "evet")
 hasar_var = st.checkbox("Araçta hasar / tramer kaydı var mı?", value=ai_hasar)
-
 if hasar_var:
-    st.write("Ekspertiz bilgilerini gir (bilmiyorsan tahmini değer girebilirsin):")
+    st.write("Ekspertiz bilgilerini gir:")
     col5, col6, col7 = st.columns(3)
-    tramer  = col5.number_input("Tramer kaydı (TL)", 0, value=20000, step=5000,
-                                help="Araçtaki toplam hasar kayıt tutarı.")
+    tramer  = col5.number_input("Tramer kaydı (TL)", 0, value=20000, step=5000)
     degisen = col6.number_input("Değişen parça sayısı", 0, 30, value=1)
     boyali  = col7.number_input("Boyalı parça sayısı", 0, 30, value=1)
 else:
-    tramer, degisen, boyali = 0, 0, 0  # hasarsız
+    tramer, degisen, boyali = 0, 0, 0
 
 if st.button("Fiyatı Tahmin Et", type="primary"):
     arac = pd.DataFrame([{
@@ -157,7 +160,31 @@ if st.button("Fiyatı Tahmin Et", type="primary"):
         "cekis": cekis, "yil": yil, "kilometre": kilometre,
         "motor_hacmi": motor_hacmi, "motor_gucu": motor_gucu,
         "tramer": tramer, "degisen": degisen, "boyali": boyali}])
-    tahmin = pipe.predict(arac)[0]
-    st.success(f"Tahmini fiyat: {tahmin:,.0f} TL")
-    hasar_notu = " (hasarsız)" if (tramer == 0 and degisen == 0 and boyali == 0) else " (hasar dahil edildi)"
+
+    ort, alt, ust = aralik_tahmin(arac)
+    # Bu marka+seri'den veride kac ilan var? (guvenilirlik gostergesi)
+    benzer = df[(df["marka"] == marka) & (df["seri"] == seri)]
+    n_benzer = len(benzer)
+
+    st.success(f"Tahmini fiyat: {ort:,.0f} TL")
+    st.write(f"**Tahmini aralık:** {alt:,.0f} TL – {ust:,.0f} TL")
+    st.caption(f"Bu tahmin, veri setindeki **{n_benzer}** benzer ilana dayanmaktadır.")
+
+    # Az veri varsa uyar
+    if n_benzer < 15:
+        st.warning(f"⚠️ Bu araç ({marka} {seri}) için veride yalnızca {n_benzer} ilan var. "
+                   "Tahmin daha az kesin olabilir, geniş bir aralıkla değerlendir.")
+
+    # Veriden gerçek benzer ilanlar göster (sağlama için)
+    if n_benzer > 0:
+        st.write("**Veri setindeki benzer araçlar (gerçek fiyatlar):**")
+        ornekler = benzer.sort_values("fiyat")[["yil", "kilometre", "fiyat"]].copy()
+        # Kullanicinin yila en yakin birkac ilan
+        ornekler["yil_farki"] = (ornekler["yil"] - yil).abs()
+        gosterim = ornekler.sort_values("yil_farki").head(5)[["yil", "kilometre", "fiyat"]]
+        gosterim = gosterim.rename(columns={"yil": "Yıl", "kilometre": "Kilometre", "fiyat": "Fiyat (TL)"})
+        st.dataframe(gosterim.style.format({"Kilometre": "{:,.0f}", "Fiyat (TL)": "{:,.0f}"}),
+                     hide_index=True, use_container_width=True)
+
+    hasar_notu = " (hasarsız)" if (tramer == 0 and degisen == 0 and boyali == 0) else " (hasar dahil)"
     st.caption(f"{marka} {seri} • {yil} • {kilometre:,.0f} km{hasar_notu}")
