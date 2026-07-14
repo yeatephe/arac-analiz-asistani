@@ -92,15 +92,20 @@ if yuklenen is not None:
             komut = (
                 "Bu bir araç fotoğrafı. SADECE şu JSON formatında cevap ver, başka metin ekleme:\n"
                 '{"marka":"","seri":"","model":"","renk":"","kasa_tipi":"","cekis":"",'
-                '"motor_hacmi_cc":"","motor_gucu_bg":"","gorunur_durum":"","hasar_var_mi":"",'
-                '"tahmini_yil_araligi":"","notlar":""}\n'
+                '"motor_hacmi_cc":"","motor_gucu_bg":"","emin_olunmayanlar":"",'
+                '"gorunur_durum":"","hasar_var_mi":"","tahmini_yil_araligi":"","notlar":""}\n'
                 "KURALLAR:\n"
                 "- motor_hacmi_cc: sadece SAYI yaz, cc cinsinden (ör. 1400, 1600). '1.4' YAZMA, 1400 yaz.\n"
                 "- motor_gucu_bg: sadece SAYI yaz, beygir cinsinden (ör. 95, 130).\n"
                 "- cekis: 'Önden Çekiş', 'Arkadan İtiş' veya '4WD' yaz.\n"
-                "- Bu teknik bilgileri aracın marka/modelinden çıkar (fotoğrafta görünmese de model bilgisiyle tahmin et).\n"
+                "- Bu teknik bilgileri aracın marka/modelinden çıkar.\n"
+                "- ÖNEMLİ DÜRÜSTLÜK KURALI: Donanım paketi (Joy/Icon/Touch gibi), motor hacmi, "
+                "motor gücü gibi bilgiler fotoğraftan KESİN anlaşılmıyorsa, en olası değeri yaz AMA "
+                "'emin_olunmayanlar' alanına hangi bilgilerden emin olmadığını yaz "
+                "(ör. 'donanım paketi ve motor gücü fotoğraftan kesinleştirilemedi'). "
+                "Emin olduğun bir şey yoksa emin_olunmayanlar'ı boş bırak. Asla uydurma, tahmin ettiğini belli et.\n"
                 "- gorunur_durum: sadece gözle görülen dış durum. hasar_var_mi: 'evet' veya 'hayir'.\n"
-                "- Kesin ekspertiz (değişen/boyalı parça) yorumu YAPMA. Emin değilsen 'belirsiz' yaz, uydurma.\n"
+                "- Kesin ekspertiz (değişen/boyalı parça) yorumu YAPMA.\n"
                 "Türkçe cevap ver."
             )
             try:
@@ -121,6 +126,10 @@ if analiz:
     st.write(f"**Görünür durum:** {analiz.get('gorunur_durum','-')}")
     if analiz.get("notlar"):
         st.info("📝 " + analiz["notlar"])
+    # AI'in emin olmadigi bilgiler icin uyari
+    emin_degil = analiz.get("emin_olunmayanlar", "")
+    if emin_degil and str(emin_degil).lower() not in ("", "belirsiz", "yok", "-"):
+        st.warning(f"🤔 Yapay zeka şunlardan emin değil, lütfen aşağıdan kontrol et: {emin_degil}")
     if str(analiz.get("hasar_var_mi", "")).lower() == "evet":
         st.warning("⚠️ Fotoğrafta görünür hasar tespit edildi. Aşağıdan hasar bilgilerini girersen tahmin daha doğru olur.")
     st.caption("⚠️ Bu bir ön izlenimdir, sadece fotoğrafa dayanır ve gerçek ekspertiz yerine geçmez.")
