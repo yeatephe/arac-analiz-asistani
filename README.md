@@ -6,7 +6,7 @@ Upload a photo → the AI recognizes the make, model, color and visible damage �
 
 ## 🚀 Live Demo
 
-👉 [Try the app here](https://guanrynhgariacpngg9q6d.streamlit.app)
+👉 [Try the app here](https://arac-ekspertiz-tahmin.streamlit.app)
 
 ## 📸 Screenshot
 
