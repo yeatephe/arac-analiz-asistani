@@ -128,8 +128,32 @@ def aralik_tahmin(arac_df):
     # Tek deger doner; belirsizlik icin benzer ilanlardan std kullanacagiz (asagida)
     return np.expm1(log_tah[0])
 
-st.title("🚗 AI Araç Değerleme Asistanı")
-st.write("Bir araç fotoğrafı yükle; yapay zeka aracın tüm özelliklerini tanısın, sen sadece yıl/km/vites gibi bilgileri onayla.")
+st.title("Arabanın Değerini Saniyeler İçinde Öğren")
+st.markdown(
+    "<p style='font-size:1.1rem; color:#94A3B8; margin-top:-0.5rem;'>"
+    "Fotoğrafını çek, yapay zeka aracını tanısın ve gerçek piyasa verisiyle değerini söylesin."
+    "</p>", unsafe_allow_html=True)
+
+# 3 adım şeridi (ürün gibi görünsün)
+st.markdown("""
+<div style='display:flex; gap:10px; margin:1rem 0 1.5rem 0;'>
+  <div style='flex:1; background:#1A2332; border:1px solid #2A3B52; border-radius:12px; padding:14px; text-align:center;'>
+    <div style='font-size:1.6rem;'>📸</div>
+    <div style='font-weight:600; color:#E5EDF5;'>1. Fotoğraf Yükle</div>
+    <div style='font-size:0.8rem; color:#94A3B8;'>Aracının bir fotoğrafını seç</div>
+  </div>
+  <div style='flex:1; background:#1A2332; border:1px solid #2A3B52; border-radius:12px; padding:14px; text-align:center;'>
+    <div style='font-size:1.6rem;'>🤖</div>
+    <div style='font-weight:600; color:#E5EDF5;'>2. AI Tanısın</div>
+    <div style='font-size:0.8rem; color:#94A3B8;'>Marka, model ve durum otomatik</div>
+  </div>
+  <div style='flex:1; background:#1A2332; border:1px solid #2A3B52; border-radius:12px; padding:14px; text-align:center;'>
+    <div style='font-size:1.6rem;'>💰</div>
+    <div style='font-weight:600; color:#E5EDF5;'>3. Değerini Gör</div>
+    <div style='font-size:0.8rem; color:#94A3B8;'>Gerçek verilerle fiyat tahmini</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ============ BÖLÜM 1: FOTOĞRAF ANALİZİ ============
 st.header("1) Fotoğraf Analizi")
